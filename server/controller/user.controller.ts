@@ -10,6 +10,8 @@ import path from "path";
 import { accessTokenOptions, refreshTokenOptions, sendToken } from "../utils/jwt";
 import {redis} from "../utils/redis";
 import bcrypt from "bcryptjs";
+import { getAllUsersService } from "../services/user.service";
+import cloudinary from "cloudinary"
 
 interface IRegistrationBody{
     name:string;
@@ -332,7 +334,7 @@ export const updatePassword=CatchAsyncError(async(req:Request,res:Response,next:
         
         await user?.save();
 
-        await userModel.findByIdAndUpdate(decoded.id,)
+        await userModel.findByIdAndUpdate(decoded.id,user as IUser);
     
         await redis.set(decoded.id, JSON.stringify(user));
     
@@ -344,4 +346,181 @@ export const updatePassword=CatchAsyncError(async(req:Request,res:Response,next:
         return next(new ErrorHandler(error.message,400));
     }
 
+});
+
+
+export const getAllUsers=CatchAsyncError(async(req:Request,res:Response,next:NextFunction)=>{
+    try{
+        getAllUsersService(res);
+    }catch(error:any){
+        return next(new ErrorHandler(error.message,400));
+    }
+})
+
+interface IProfilePicture{
+    avatar:string;
+}
+
+export const updateProfilePicture=CatchAsyncError(async(req:Request,res:Response,next:NextFunction)=>{
+    try{
+        const refresh_token=req.cookies.refresh_token as string;
+
+        const {avatar}=req.body as IProfilePicture;
+    
+        if(!refresh_token){
+            return next(new ErrorHandler("Please Login to get resource",400));
+        }
+    
+        const decoded=jwt.verify(
+            refresh_token,
+            process.env.REFRESH_TOKEN as string
+        ) as JwtPayload;
+    
+        const user=await userModel.findById(decoded.id);
+    
+        if (avatar && user) {
+
+            if (user?.avatar?.public_id) {
+
+              await cloudinary.v2.uploader.destroy(user?.avatar?.public_id);
+    
+              const myCloud = await cloudinary.v2.uploader.upload(avatar, {
+                folder: "avatars",
+                width: 150,
+              });
+              user.avatar = {
+                public_id: myCloud.public_id,
+                url: myCloud.secure_url,
+              };
+            } else {
+              const myCloud = await cloudinary.v2.uploader.upload(avatar, {
+                folder: "avatars",
+                width: 150,
+              });
+              user.avatar = {
+                public_id: myCloud.public_id,
+                url: myCloud.secure_url,
+              };
+            }
+          }
+          
+          await user?.save();
+
+          const updateUser=await userModel.findByIdAndUpdate(decoded.id,user as IUser);
+    
+          await redis.set(decoded.id, JSON.stringify(user));
+        
+              res.status(201).json({
+                success: true,
+                user:updateUser,
+            });
+    }catch(error:any){
+        return next(new ErrorHandler(error.message,400));
+    }
+});
+
+interface IBio{
+    bio:string;
+}
+
+export const updateBio=CatchAsyncError(async(req:Request,res:Response,next:NextFunction)=>{
+    try{
+        const refresh_token=req.cookies.refresh_token as string;
+
+        const {bio}=req.body as IBio;
+    
+        if(!refresh_token){
+            return next(new ErrorHandler("Please Login to get resource",400));
+        }
+    
+        const decoded=jwt.verify(
+            refresh_token,
+            process.env.REFRESH_TOKEN as string
+        ) as JwtPayload;
+    
+        const user=await userModel.findById(decoded.id);
+
+        if(bio){
+            user!.bio=bio;
+        }
+
+        await user?.save();
+
+        const updateUser=await userModel.findByIdAndUpdate(decoded.id,user as IUser);
+
+        return res.status(201).json({
+            success:true,
+            user:updateUser,
+        })
+
+    }catch(error:any){
+        return next(new ErrorHandler(error.message,400));
+    }
+})
+
+
+interface IPrivate{
+    isPrivate:boolean;
+}
+
+export const updatePrivacy=CatchAsyncError(async(req:Request,res:Response,next:NextFunction)=>{
+    try{
+        const refresh_token=req.cookies.refresh_token as string;
+
+        const {isPrivate}=req.body as IPrivate;
+    
+        if(!refresh_token){
+            return next(new ErrorHandler("Please Login to get resource",400));
+        }
+    
+        const decoded=jwt.verify(
+            refresh_token,
+            process.env.REFRESH_TOKEN as string
+        ) as JwtPayload;
+    
+        const user=await userModel.findById(decoded.id);
+
+        if(isPrivate){
+            user!.privacy=isPrivate;
+        }
+
+        await user?.save();
+
+        const updateUser=await userModel.findByIdAndUpdate(decoded.id,user as IUser);
+
+        return res.status(201).json({
+            success:true,
+            user:updateUser,
+        })
+
+    }catch(error:any){
+        return next(new ErrorHandler(error.message,400));
+    }
+});
+
+
+export const deleteUser=CatchAsyncError(async(req:Request,res:Response,next:NextFunction)=>{
+    try{
+        const refresh_token=req.cookies.refresh_token as string;
+
+        const {isPrivate}=req.body as IPrivate;
+    
+        if(!refresh_token){
+            return next(new ErrorHandler("Please Login to get resource",400));
+        }
+    
+        const decoded=jwt.verify(
+            refresh_token,
+            process.env.REFRESH_TOKEN as string
+        ) as JwtPayload;
+    
+        await userModel.findByIdAndDelete(decoded.id);
+
+        return res.status(201).json({
+            success:true,
+            message:"Delete Successfully"
+        })
+    }catch(error:any){
+        return next(new ErrorHandler(error.message,400));
+    }
 })
