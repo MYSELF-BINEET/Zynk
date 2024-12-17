@@ -3,6 +3,7 @@ export const app=express();
 import cors from 'cors';
 import cookieParser = require("cookie-parser");
 import userRouter from "./routes/user.route";
+import messageRouter from "./routes/message.route";
 
 
 //body parse
@@ -16,6 +17,7 @@ app.use(cookieParser());
 //cors use for frontend
 
 app.use("/api/v1",userRouter);
+app.use("/api/v1",messageRouter)
 
 app.get("/test",(req : Request , res : Response,next:NextFunction)=>{
     res.status(200).json({

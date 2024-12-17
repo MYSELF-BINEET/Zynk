@@ -4,8 +4,8 @@ import mongoose, { Model, ObjectId, Schema } from "mongoose";
 export interface IMessage{
     from:ObjectId;
     to:ObjectId;
-    messages:Array<{messageId:ObjectId}>
-    status:String
+    message:String;
+    status:String;
 }
 
 const messageSchema:Schema<IMessage>=new mongoose.Schema<IMessage>({
@@ -17,14 +17,10 @@ const messageSchema:Schema<IMessage>=new mongoose.Schema<IMessage>({
         type:mongoose.Schema.Types.ObjectId,
         ref:"User"
     },
-    messages:[
-        {
-            messageId:{
-                type:mongoose.Schema.Types.ObjectId,
-                ref:"Message"
-            }
-        }
-    ],
+    message:{
+        type:String,
+        required:true
+    },
     status:{
         type:String,
         enum:["pending","seen","delivered"],

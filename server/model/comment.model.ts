@@ -6,7 +6,7 @@ export interface IComment extends Document{
     userId:ObjectId;
     photoId:ObjectId
     videoId:ObjectId
-    question:string;
+    comment:string;
     answer:IComment[];
 };
 
@@ -24,7 +24,7 @@ const commentSchema:Schema<IComment> = new mongoose.Schema<IComment>({
         type:mongoose.Schema.Types.ObjectId,
         ref:"Video"
     },
-    question:{
+    comment:{
         type:String,
         required:true
     },

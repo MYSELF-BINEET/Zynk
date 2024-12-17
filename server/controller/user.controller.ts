@@ -428,7 +428,7 @@ export const updateBio=CatchAsyncError(async(req:Request,res:Response,next:NextF
         const refresh_token=req.cookies.refresh_token as string;
 
         const {bio}=req.body as IBio;
-    
+
         if(!refresh_token){
             return next(new ErrorHandler("Please Login to get resource",400));
         }
@@ -438,17 +438,31 @@ export const updateBio=CatchAsyncError(async(req:Request,res:Response,next:NextF
             process.env.REFRESH_TOKEN as string
         ) as JwtPayload;
     
-        const user=await userModel.findById(decoded.id);
+        // const user=await userModel.findById(decoded.id);
 
-        if(bio){
-            user!.bio=bio;
-        }
+        // if(user){
+        //     user.bio=bio;
+        // }else{
+        //     return next(new ErrorHandler("User not found",404));
+        // }
 
-        await user?.save();
+        // console.log(user);
+        
 
-        const updateUser=await userModel.findByIdAndUpdate(decoded.id,user as IUser);
+        // try {
+        //     await user?.save();
+        //     console.log("User saved successfully!");
+        // } catch (error: any) {
+        //     console.error("Error saving user:", error.message);
+        // }
 
-        await redis.set(decoded.id, JSON.stringify(user));
+        // await user?.save();
+        
+        
+        const updateUser=await userModel.findByIdAndUpdate(decoded.id,{bio:bio},{new:true});
+
+
+        await redis.set(decoded.id, JSON.stringify(updateUser));
 
         return res.status(201).json({
             success:true,
@@ -480,17 +494,22 @@ export const updatePrivacy=CatchAsyncError(async(req:Request,res:Response,next:N
             process.env.REFRESH_TOKEN as string
         ) as JwtPayload;
     
-        const user=await userModel.findById(decoded.id);
+        // const user=await userModel.findById(decoded.id);
 
-        if(isPrivate){
-            user!.privacy=isPrivate;
-        }
+        // if(isPrivate){
+        //     user!.privacy=isPrivate;
+        // }
 
-        await user?.save();
+        // try {
+        //     await user?.save();
+        //     console.log("User saved successfully!");
+        // } catch (error: any) {
+        //     console.error("Error saving user:", error.message);
+        // }
 
-        const updateUser=await userModel.findByIdAndUpdate(decoded.id,user as IUser);
+        const updateUser=await userModel.findByIdAndUpdate(decoded.id,{privacy:isPrivate},{new:true});
 
-        await redis.set(decoded.id, JSON.stringify(user));
+        await redis.set(decoded.id, JSON.stringify(updateUser));
 
         return res.status(201).json({
             success:true,
@@ -522,17 +541,22 @@ export const updateIsVerified=CatchAsyncError(async(req:Request,res:Response,nex
         ) as JwtPayload;
 
 
-        const user=await userModel.findById(decoded.id);
+        // const user=await userModel.findById(decoded.id);
 
-        if(isVerified){
-            user!.isVerified=isVerified;
-        }
+        // if(isVerified){
+        //     user!.isVerified=isVerified;
+        // }
 
-        await user?.save();
+        // try {
+        //     await user?.save();
+        //     console.log("User saved successfully!");
+        // } catch (error: any) {
+        //     console.error("Error saving user:", error.message);
+        // }
 
-        const updateUser=await userModel.findByIdAndUpdate(decoded.id,user as IUser);
+        const updateUser=await userModel.findByIdAndUpdate(decoded.id,{isVerified:isVerified},{new:true});
 
-        await redis.set(decoded.id, JSON.stringify(user));
+        await redis.set(decoded.id, JSON.stringify(updateUser));
 
         return res.status(201).json({
             success:true,
@@ -549,7 +573,6 @@ export const deleteUser=CatchAsyncError(async(req:Request,res:Response,next:Next
     try{
         const refresh_token=req.cookies.refresh_token as string;
 
-        const {isPrivate}=req.body as IPrivate;
     
         if(!refresh_token){
             return next(new ErrorHandler("Please Login to get resource",400));
