@@ -448,6 +448,8 @@ export const updateBio=CatchAsyncError(async(req:Request,res:Response,next:NextF
 
         const updateUser=await userModel.findByIdAndUpdate(decoded.id,user as IUser);
 
+        await redis.set(decoded.id, JSON.stringify(user));
+
         return res.status(201).json({
             success:true,
             user:updateUser,
@@ -488,6 +490,8 @@ export const updatePrivacy=CatchAsyncError(async(req:Request,res:Response,next:N
 
         const updateUser=await userModel.findByIdAndUpdate(decoded.id,user as IUser);
 
+        await redis.set(decoded.id, JSON.stringify(user));
+
         return res.status(201).json({
             success:true,
             user:updateUser,
@@ -497,6 +501,48 @@ export const updatePrivacy=CatchAsyncError(async(req:Request,res:Response,next:N
         return next(new ErrorHandler(error.message,400));
     }
 });
+
+interface IVerified{
+    isVerified:boolean;
+}
+
+export const updateIsVerified=CatchAsyncError(async(req:Request,res:Response,next:NextFunction)=>{
+    try{
+        const refreshToken=req.cookies.refresh_token as string;
+
+        const {isVerified}=req.body as IVerified;
+
+        if(!refreshToken){
+            return next(new ErrorHandler("Please Login to get resource",400));
+        }
+
+        const decoded=jwt.verify(
+            refreshToken,
+            process.env.REFRESH_TOKEN as string
+        ) as JwtPayload;
+
+
+        const user=await userModel.findById(decoded.id);
+
+        if(isVerified){
+            user!.isVerified=isVerified;
+        }
+
+        await user?.save();
+
+        const updateUser=await userModel.findByIdAndUpdate(decoded.id,user as IUser);
+
+        await redis.set(decoded.id, JSON.stringify(user));
+
+        return res.status(201).json({
+            success:true,
+            user:updateUser,
+        })
+
+    }catch(error:any){
+        return next(new ErrorHandler(error.message,400));
+    }
+})
 
 
 export const deleteUser=CatchAsyncError(async(req:Request,res:Response,next:NextFunction)=>{

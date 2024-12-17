@@ -1,5 +1,5 @@
 import express from "express"
-import { activeUser, deleteUser, getAllUsers, getUserInfo, loginUser, logoutUser, registrationUser, updateAccessToken, updateBio, updatePassword, updatePrivacy, updateProfilePicture } from "../controller/user.controller";
+import { activeUser, deleteUser, getAllUsers, getUserInfo, loginUser, logoutUser, registrationUser, updateAccessToken, updateBio, updateIsVerified, updatePassword, updatePrivacy, updateProfilePicture } from "../controller/user.controller";
 import { isAuthenticated } from "../middleware/auth";
 
 const userRouter=express.Router();
@@ -16,6 +16,7 @@ userRouter.put("/update-profilePic",isAuthenticated,updateProfilePicture);
 userRouter.get("/allUser",isAuthenticated,getAllUsers);
 userRouter.put("/update-bio",isAuthenticated,updateBio);
 userRouter.put("/update-privacy",updatePrivacy);
+userRouter.put("/update-verified",isAuthenticated,updateIsVerified);
 userRouter.delete("/delete-me",isAuthenticated,deleteUser);
 
 export default userRouter;
