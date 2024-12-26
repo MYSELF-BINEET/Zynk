@@ -1,4 +1,6 @@
 import mongoose, { Model, ObjectId, Schema } from "mongoose";
+import { IMessage, messageSchema } from "./message.model";
+import { IUser, userSchema } from "./user.model";
 
 
 export interface IStatus{
@@ -12,8 +14,8 @@ export interface IStatus{
         public_id:string,
         url:string,
     },
-    messages:Array<{messageId:ObjectId}>,
-    userId:ObjectId
+    messages:IMessage,
+    user:String
 }
 
 
@@ -47,13 +49,13 @@ const statusSchema:Schema<IStatus>=new mongoose.Schema<IStatus>({
     },
     messages:[
         {
-            type:mongoose.Schema.Types.ObjectId,
-            ref:'Message'
+            type:messageSchema,
+            default:[]
         }
     ],
-    userId:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:'User'
+    user:{
+        type:String,
+        required:true
     }
 },{timestamps:true});
 

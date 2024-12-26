@@ -6,5 +6,8 @@ declare global {
         interface Request{
             user?: IUser
         }
+        interface Request {
+            file?: Express.Multer.File; // Adds 'file' property to request object
+          }
     }
 }

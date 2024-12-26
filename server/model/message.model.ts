@@ -1,21 +1,22 @@
 import mongoose, { Model, ObjectId, Schema } from "mongoose";
+import { IUser, userSchema } from "./user.model";
 
 
 export interface IMessage{
-    from:ObjectId;
-    to:ObjectId;
+    from:String;
+    to:String;
     message:String;
     status:String;
 }
 
-const messageSchema:Schema<IMessage>=new mongoose.Schema<IMessage>({
+export const messageSchema:Schema<IMessage>=new mongoose.Schema<IMessage>({
     from:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"User"
+        type:String,
+        required:true
     },
     to:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"User"
+        type:String,
+        required:true
     },
     message:{
         type:String,

@@ -1,25 +1,25 @@
 import mongoose, {Model, ObjectId, Schema } from "mongoose";
+import ErrorHandler from "../utils/ErrorHandler";
+import { IUser, userSchema } from "./user.model";
+import commentModel, { commentSchema, IComment } from "./comment.model";
 
 
 export interface IPost extends Document{
-    userId:ObjectId,
+    userId:string,
     photo:{
         public_id:string,
         url:string
     };
     description:string;
-    likes:number;
-    comments:Array<{commentId:ObjectId}>;
+    likes:Number;
+    dislikes:number;
+    comments:IComment[];
     shares:number;
 }
 
 
-const postSchema:Schema<IPost>=new mongoose.Schema<IPost>({
-    userId:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:'User',
-        required:true
-    },
+export const postSchema:Schema<IPost>=new mongoose.Schema<IPost>({
+    userId:String,
     photo:{
         public_id:{
             type:String,
@@ -32,15 +32,20 @@ const postSchema:Schema<IPost>=new mongoose.Schema<IPost>({
     },
     description:{
         type:String,
-        // required:true
+        // required:true,
+        // default:"Sample testing"
     },
     likes:{
         type:Number,
         default:0
     },
+    dislikes:{
+        type:Number,
+        default:0
+    },
     comments:[{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:'Comment'
+        type:commentSchema,
+        default:[]
     }],
     shares:{
         type:Number,
@@ -48,7 +53,15 @@ const postSchema:Schema<IPost>=new mongoose.Schema<IPost>({
     }
 },{timestamps:true});
 
-
+postSchema.pre("deleteOne", { document: true, query: false }, async function (next) {
+    try {
+        const post = this as unknown as IPost; // Reference the document being deleted
+        await commentModel.deleteMany({ _id: { $in: post.comments } }); // Delete associated comments
+        next();
+    } catch (error:any) {
+        next(new ErrorHandler(error.message,400));
+    }
+});
 const postModel:Model<IPost>=mongoose.model<IPost>('Post',postSchema);
 
 export default postModel;

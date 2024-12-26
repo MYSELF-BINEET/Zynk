@@ -1,6 +1,8 @@
 import express from "express"
-import { activeUser, deleteUser, getAllUsers, getUserInfo, loginUser, logoutUser, registrationUser, updateAccessToken, updateBio, updateIsVerified, updatePassword, updatePrivacy, updateProfilePicture } from "../controller/user.controller";
+import { activeUser, deleteUser, follow, getAllUsers, getUser, getUserInfo, loginUser, logoutUser, registrationUser, unFollow, updateAccessToken, updateBio, updateIsVerified, updatePassword, updatePrivacy, updateProfilePicture } from "../controller/user.controller";
 import { isAuthenticated } from "../middleware/auth";
+import { isOwner } from "../middleware/owner";
+
 
 const userRouter=express.Router();
 
@@ -18,5 +20,9 @@ userRouter.put("/update-bio",isAuthenticated,updateBio);
 userRouter.put("/update-privacy",updatePrivacy);
 userRouter.put("/update-verified",isAuthenticated,updateIsVerified);
 userRouter.delete("/delete-me",isAuthenticated,deleteUser);
+//yet to test
+userRouter.get("/getUser/:userId",getUser);
+userRouter.put("/follow",isAuthenticated,follow);
+userRouter.put("/follow",isAuthenticated,unFollow);
 
 export default userRouter;

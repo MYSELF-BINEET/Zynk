@@ -1,40 +1,42 @@
 import mongoose, { Model, ObjectId, Schema } from "mongoose";
+import { IUser, userSchema } from "./user.model";
 
 
 
 export interface IComment extends Document{
-    userId:ObjectId;
-    photoId:ObjectId
-    videoId:ObjectId
+    userId:String;
+    // photoId:ObjectId
+    // reelsId:ObjectId
     comment:string;
-    answer:IComment[];
+    answer:[];
 };
 
 
-const commentSchema:Schema<IComment> = new mongoose.Schema<IComment>({
+export const commentSchema:Schema<IComment> = new mongoose.Schema<IComment>({
     userId:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"User"
+        type:String,
+        required:true
     },
-    photoId:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"Photo"
-    },
-    videoId:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"Video"
-    },
+    // photoId:{
+    //     type:mongoose.Schema.Types.ObjectId,
+    //     ref:"Photo"
+    // },
+    // reelsId:{
+    //     type:mongoose.Schema.Types.ObjectId,
+    //     ref:"Reels"
+    // },
     comment:{
         type:String,
         required:true
     },
     answer:[
         {
-            type:mongoose.Schema.Types.ObjectId,
-            ref:"Comment"
+            username:String,
+            answer:String,
         }
     ]
 },{timestamps:true});
+
 
 const commentModel:Model<IComment> = mongoose.model('Comment',commentSchema);
 

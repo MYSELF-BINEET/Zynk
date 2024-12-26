@@ -4,6 +4,7 @@ import cors from 'cors';
 import cookieParser = require("cookie-parser");
 import userRouter from "./routes/user.route";
 import messageRouter from "./routes/message.route";
+import postRouter from "./routes/post.route";
 
 
 //body parse
@@ -18,6 +19,7 @@ app.use(cookieParser());
 
 app.use("/api/v1",userRouter);
 app.use("/api/v1",messageRouter)
+app.use("/api/v1",postRouter);
 
 app.get("/test",(req : Request , res : Response,next:NextFunction)=>{
     res.status(200).json({

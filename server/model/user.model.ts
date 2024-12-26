@@ -1,6 +1,10 @@
 import mongoose, { Model, ObjectId, Schema } from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import postModel, { IPost, postSchema } from "./post.model";
+import reelsModel, { IReels, reelsSchema } from "./reels.model";
+import ErrorHandler from "../utils/ErrorHandler";
+import commentModel from "./comment.model";
 
 
 const emailRegexPattern: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -16,9 +20,10 @@ export interface IUser extends Document{
     bio:string;
     privacy:boolean;
     isVerified:boolean;
-    posts:Array<{postId:ObjectId}>;
-    videos:Array<{videoId:ObjectId}>;
-    followers:Array<{userId:string}>;
+    posts:IPost[];
+    reels:IReels[];
+    followersNumber:Number;
+    followers:Array<ObjectId>;
     comparePassword:(password:string)=>Promise<boolean>;
     signAccessToken:()=>string;
     signRefreshToken:()=>string;
@@ -26,7 +31,7 @@ export interface IUser extends Document{
 }
 
 
-const userSchema:Schema<IUser>=new mongoose.Schema<IUser>({
+export const userSchema:Schema<IUser>=new mongoose.Schema<IUser>({
     name:{
         type:String,
         required:[true,'Please provide your name']
@@ -53,7 +58,7 @@ const userSchema:Schema<IUser>=new mongoose.Schema<IUser>({
     },
     bio:{
         type:String,
-        default:"Enter your bio ......"
+        // default:"Enter your bio ......"
     },
     privacy:{
         type:Boolean,
@@ -63,22 +68,18 @@ const userSchema:Schema<IUser>=new mongoose.Schema<IUser>({
         type:Boolean,
         default:false
     },
-    posts:[{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:'Post',
-        default:[]
-    }],
-    videos:[{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:'Video',
-        default:[]
-    }],
+    posts:[postSchema],
+    reels:[reelsSchema],
+    followersNumber:{
+        type:Number,
+        default:0
+    },
     followers:[{
         type:mongoose.Schema.Types.ObjectId,
-        ref:'User',
-        default:[]
+        ref:'User'
     }]
 },{timestamps:true})
+
 
 
 
@@ -91,6 +92,33 @@ userSchema.pre<IUser>("save",async function (next){
     next();
 })
 
+// Pre-delete middleware to delete associated posts and reels
+userSchema.pre("deleteOne", { document: true, query: false }, async function (next) {
+    try {
+        const user = this as unknown as IUser; // Reference the user being deleted
+
+        // Delete all associated posts
+        await postModel.deleteMany({ _id: { $in: user.posts } });
+
+        // Delete all associated reels
+        await reelsModel.deleteMany({ _id: { $in: user.reels } });
+
+        const allComments = await postModel.aggregate([
+            { $match: { _id: { $in: user.posts } } },  // Match posts by user
+            { $unwind: "$comments" },  // Unwind the comments array
+            { $project: { _id: "$comments._id" } }  // Project the comment _id
+        ]);
+
+        const commentIds = allComments.map((comment: any) => comment._id);  // Extract comment IDs
+
+        // Delete comments by their _id
+        await commentModel.deleteMany({ _id: { $in: commentIds } });
+
+        next();
+    } catch (error: any) {
+        next(new ErrorHandler(error.message, 500));
+    }
+});
 
 //sign access token
 userSchema.methods.signAccessToken = function(){

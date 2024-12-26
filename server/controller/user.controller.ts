@@ -1,3 +1,4 @@
+require('dotenv').config();
 import { Request,Response,NextFunction } from "express"
 import { CatchAsyncError } from "../middleware/catchAsyncError"
 import ErrorHandler from "../utils/ErrorHandler"
@@ -12,19 +13,19 @@ import {redis} from "../utils/redis";
 import bcrypt from "bcryptjs";
 import { getAllUsersService } from "../services/user.service";
 import cloudinary from "cloudinary"
+import getDataUri from "../utils/dataUri";
 
 interface IRegistrationBody{
     name:string;
     email:string;
     password:string;
-    avatar?:string;
 };
 
 
 export const registrationUser=CatchAsyncError(async(req:Request,res:Response,next:NextFunction)=>{
     try{
-        const {name,email,password}=req.body as unknown as IRegistrationBody;
-        const isEmailExists=await userModel.findOne({email});
+        const {name,email,password}=req.body as IRegistrationBody;
+        const isEmailExists=await userModel.findOne({email:email});
         if(isEmailExists){
             return next(new ErrorHandler("Email already in user",400));
         }
@@ -35,7 +36,7 @@ export const registrationUser=CatchAsyncError(async(req:Request,res:Response,nex
             password,
         };
 
-        const activationToken=createActivationToken(user);
+        const activationToken=createActivationToken(user as IUser);
 
         const activationCode=activationToken.activationCode;
 
@@ -73,7 +74,7 @@ interface IActivationToken{
     token:string;
 };
 
-export const createActivationToken = (user: any): IActivationToken => {
+export const createActivationToken = (user: IUser): IActivationToken => {
     const activationCode = Math.floor(1000 + Math.random() * 9000).toString();
 
     const token = jwt.sign(
@@ -229,10 +230,10 @@ export const updateAccessToken=CatchAsyncError(async(req:Request,res:Response,ne
           res.cookie("refresh_token", refreshToken, refreshTokenOptions);
     
   
-          return res.status(200).json({
-            success: true,
-            accessToken
-          })
+        //   res.status(200).json({
+        //     success: true,
+        //     accessToken
+        //   })
     
         next();
 
@@ -358,15 +359,18 @@ export const getAllUsers=CatchAsyncError(async(req:Request,res:Response,next:Nex
 })
 
 interface IProfilePicture{
-    avatar:string;
+    file:File;
 }
 
 export const updateProfilePicture=CatchAsyncError(async(req:Request,res:Response,next:NextFunction)=>{
     try{
         const refresh_token=req.cookies.refresh_token as string;
 
-        const {avatar}=req.body as IProfilePicture;
-    
+        const file=req.body as IProfilePicture;
+
+        const avatar=getDataUri(file as any);
+
+
         if(!refresh_token){
             return next(new ErrorHandler("Please Login to get resource",400));
         }
@@ -384,8 +388,8 @@ export const updateProfilePicture=CatchAsyncError(async(req:Request,res:Response
 
               await cloudinary.v2.uploader.destroy(user?.avatar?.public_id);
     
-              const myCloud = await cloudinary.v2.uploader.upload(avatar, {
-                folder: "avatars",
+              const myCloud = await cloudinary.v2.uploader.upload(avatar.content as string, {
+                folder: "zync/avatars",
                 width: 150,
               });
               user.avatar = {
@@ -393,8 +397,8 @@ export const updateProfilePicture=CatchAsyncError(async(req:Request,res:Response
                 url: myCloud.secure_url,
               };
             } else {
-              const myCloud = await cloudinary.v2.uploader.upload(avatar, {
-                folder: "avatars",
+              const myCloud = await cloudinary.v2.uploader.upload(avatar.content as string, {
+                folder: "zync/avatars",
                 width: 150,
               });
               user.avatar = {
@@ -569,25 +573,111 @@ export const updateIsVerified=CatchAsyncError(async(req:Request,res:Response,nex
 })
 
 
+//right 
+
 export const deleteUser=CatchAsyncError(async(req:Request,res:Response,next:NextFunction)=>{
     try{
-        const refresh_token=req.cookies.refresh_token as string;
+        const refreshToken=req.cookies.refresh_token as string;
 
-    
-        if(!refresh_token){
+        if(!refreshToken){
             return next(new ErrorHandler("Please Login to get resource",400));
         }
-    
+
         const decoded=jwt.verify(
-            refresh_token,
+            refreshToken,
             process.env.REFRESH_TOKEN as string
         ) as JwtPayload;
-    
-        await userModel.findByIdAndDelete(decoded.id);
+
+        const user = await userModel.findById(decoded.id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found." });
+        }
+
+        await user.deleteOne();
+
 
         return res.status(201).json({
             success:true,
             message:"Delete Successfully"
+        })
+    }catch(error:any){
+        return next(new ErrorHandler(error.message,400));
+    }
+})
+
+
+export const getUser=CatchAsyncError(async(req:Request,res:Response,next:NextFunction)=>{
+    try{
+        const userId=req.params;
+
+        const user=await userModel.findById(userId);
+
+        return res.status(201).json({
+            success:true,
+            user:user
+        })
+    }catch(error:any){
+        return next(new ErrorHandler(error.message,400));
+    }
+})
+
+
+
+export const follow=CatchAsyncError(async(req:Request,res:Response,next:NextFunction)=>{
+    try{
+
+        const userId=req.params;
+
+        const refresh_token=req.cookies.refresh_token as string;
+
+        const decoded=jwt.verify(
+            refresh_token,
+            process.env.REFRESH_SECRET as string
+        ) as JwtPayload;
+
+        const user = await userModel.findByIdAndUpdate(
+            userId,
+            {
+                $push: { followers: decoded.id }, // Add the follower to the array
+                $inc: { followersNumber: 1 }, // Increment the followers count
+            },
+            { new: true } // Return the updated document
+        );
+
+        return res.status(201).json({
+            success:true,
+            user:user
+        })
+    }catch(error:any){
+        return next(new ErrorHandler(error.message,400));
+    }
+})
+
+
+export const unFollow=CatchAsyncError(async(req:Request,res:Response,next:NextFunction)=>{
+    try{
+
+        const userId=req.params;
+
+        const refresh_token=req.cookies.refresh_token as string;
+
+        const decoded=jwt.verify(
+            refresh_token,
+            process.env.REFRESH_SECRET as string
+        ) as JwtPayload;
+
+        const user = await userModel.findByIdAndUpdate(
+            userId,
+            {
+                $pull: { followers: decoded.id }, // Add the follower to the array
+                $inc: { followersNumber: -1 }, // Increment the followers count
+            },
+            { new: true } // Return the updated document
+        );
+
+        return res.status(201).json({
+            success:true,
+            user:user
         })
     }catch(error:any){
         return next(new ErrorHandler(error.message,400));

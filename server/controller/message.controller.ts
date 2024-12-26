@@ -1,3 +1,4 @@
+require('dotenv').config();
 import { NextFunction, Request, Response } from "express";
 import { CatchAsyncError } from "../middleware/catchAsyncError";
 import { IUser } from "../model/user.model";
